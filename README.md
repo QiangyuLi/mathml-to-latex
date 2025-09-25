@@ -21,9 +21,6 @@ MathML on a webpage will show as:
 
 ∫ f(x) dx → \int f(x) , dx
 
-shell
-Copy code
-
 Click the LaTeX to copy!
 
 ## 📜 License
