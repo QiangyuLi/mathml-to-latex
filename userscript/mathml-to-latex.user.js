@@ -1,65 +1,41 @@
 // ==UserScript==
-// @name         MathML → LaTeX Copy Helper
+// @name         Disable MathJax Rendering
 // @namespace    http://tampermonkey.net/
 // @version      1.0
-// @description  Convert MathML to LaTeX inline for easy copying
+// @description  Prevent MathJax from rendering, show raw TeX/MathML instead
 // @author       You
 // @match        *://*/*
 // @grant        none
-// @require      https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
 // ==/UserScript==
 
-(function () {
+(function() {
     'use strict';
 
-    // Wait until MathJax is ready
-    window.addEventListener("load", () => {
-        // Observe the page for MathML insertion
-        const observer = new MutationObserver((mutations) => {
-            mutations.forEach((mutation) => {
-                mutation.addedNodes.forEach((node) => {
-                    if (node.nodeType === 1) {
-                        processMathML(node);
-                    }
-                });
+    // Block MathJax scripts before they load
+    const observer = new MutationObserver((mutations) => {
+        for (const mutation of mutations) {
+            mutation.addedNodes.forEach((node) => {
+                if (node.tagName === "SCRIPT" && node.src && node.src.match(/mathjax/i)) {
+                    console.log("Blocking MathJax script:", node.src);
+                    node.remove();
+                }
             });
-        });
-
-        observer.observe(document.body, { childList: true, subtree: true });
-
-        // Process existing MathML on the page
-        document.querySelectorAll("math").forEach(processMathML);
-
-        async function processMathML(mathNode) {
-            if (mathNode.getAttribute("data-latex-done")) return; // avoid duplicates
-
-            try {
-                const tex = await MathJax.texConvert(mathNode.outerHTML, {
-                    display: false
-                });
-                // Create inline copy box
-                const latexSpan = document.createElement("span");
-                latexSpan.textContent = tex.math;
-                latexSpan.style.background = "#eef";
-                latexSpan.style.padding = "2px 4px";
-                latexSpan.style.marginLeft = "5px";
-                latexSpan.style.cursor = "copy";
-                latexSpan.style.fontFamily = "monospace";
-                latexSpan.title = "Click to copy LaTeX";
-
-                // Copy on click
-                latexSpan.addEventListener("click", () => {
-                    navigator.clipboard.writeText(tex.math);
-                    latexSpan.style.background = "#cfc"; // green feedback
-                    setTimeout(() => latexSpan.style.background = "#eef", 800);
-                });
-
-                mathNode.setAttribute("data-latex-done", "true");
-                mathNode.after(latexSpan);
-
-            } catch (e) {
-                console.error("MathML → LaTeX conversion failed:", e);
-            }
         }
+    });
+    observer.observe(document.documentElement, { childList: true, subtree: true });
+
+    // Remove MathJax if already present
+    if (window.MathJax) {
+        console.log("Disabling existing MathJax");
+        delete window.MathJax;
+    }
+
+    // Unhide <math> and <script type="math/tex"> if MathJax hid them
+    document.querySelectorAll('script[type^="math/tex"]').forEach(el => {
+        const tex = el.textContent;
+        const span = document.createElement("span");
+        span.textContent = tex;
+        span.style.fontFamily = "monospace";
+        el.replaceWith(span);
     });
 })();
