@@ -1,0 +1,7 @@
+# Ignore system files
+.DS_Store
+Thumbs.db
+
+# Node-related (if you add tooling later)
+node_modules/
+dist/
